@@ -1,0 +1,233 @@
+#!/usr/bin/env python3
+
+# code for plotting coverage uniformity of Accel-Amplicon Illumina NGS data
+# and reporting coverage metrics in excel format
+# Draft v3
+# Jonathan Irish, 2017-03-20
+
+# FC 210226
+# Amended to include legend as original version had lines commented out.
+
+import argparse
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sb
+import numpy as np
+# from cycler import cycler
+import swiftplot as s
+
+#########################    TEST DATA    #####################################
+# test files
+testdir1 = "/mnt/ampdata/irish/covuniformity_plots/plotinfiles/"
+# input file column format: amplicon | mean_amp_coverage | gene_or_groupID
+testf1 = testdir1 + \
+         "cp025-OT-removed-re-pool-1_S13_L001_ampmeancov_plotinput.txt"
+###############################################################################
+
+
+def ampcov_to_df(ampmeancovfile, nolapcovfile, covmetricsfile):
+    """Read coverage metrics files and return (dfampmncov, dfcovmetrics) tuple"""
+    dfampmncov = pd.read_csv(ampmeancovfile, sep='\s+',
+                             names=['amplicon','meancov','astart','aend'])
+    dfampmncov['offsetmeancov'] = dfampmncov['meancov'] + 0.1
+    dfampmncov = dfampmncov.sort_values('astart').reset_index(drop=True)
+
+    # 190712 read sample coverage metrics into df for coverage threshold calcs
+    dfcovmets = pd.read_csv(covmetricsfile, sep='\s+',
+                            names=["meancov", "pt2xmean", "pt05xmean", "cov_u"])
+
+    dfnolapcov = pd.read_csv(nolapcovfile, sep='\s+',
+                             names=["chr","start","end","strand","ampname","base",
+                             "cov"])
+    dfnolapcov = dfnolapcov.dropna().reset_index(drop=True)
+    dfnolapcov['offsetcov'] = dfnolapcov['cov'] + 1
+
+    return (dfampmncov, dfnolapcov, dfcovmets)
+
+
+def plot_ampcov_scatter(dfampmncov, dfcovmets, outname):
+    """Scatter plot ampmeancov for each amplicon"""
+    sb.set_context('talk')
+    plt.rcParams['axes.facecolor'] = '#fdf6e3'
+    plt.rcParams['savefig.facecolor'] = '#fdf6e3'
+    plt.rcParams['figure.facecolor'] = '#fdf6e3'
+    mncov = dfcovmets.iloc[0]['meancov']
+    pt2xmean = 0.2 * mncov
+    pt1xmean = 0.1 * mncov
+    pt05xmean = 0.05 * mncov
+    fivexmean = 5.0 * mncov
+
+    xwidth = dfampmncov.shape[0] + 2 # large panel used to set these padding values; tuning may be needed
+    xrnge = range(-10, xwidth)
+    covmax = dfampmncov['offsetmeancov'].max() + 1000 # may need tuning
+
+    if covmax >= fivexmean:
+        ymax = (2.0 * covmax )
+    else:
+        ymax = (2.0 * fivexmean)
+
+    # setting a constant value for ymin seems more reliable so far
+    ymin = 0.2
+
+    # Plot data
+    f, ax = plt.subplots(figsize=(32,8)) # tune figure size/aspect ratio
+
+    # Uniformity plot (scatter plot with coverage threshold lines)
+    ax.plot(dfampmncov.index, dfampmncov['offsetmeancov'],
+            label="covid19genome_200-29703 amplicons", marker='o', ms=8,
+            linestyle='', alpha=0.7, linewidth=0, color=s.swiftblue)
+
+    ax.plot((-2, xwidth+2),(pt05xmean, pt05xmean),
+            ls='--', c='magenta', linewidth=1.0, alpha=0.5, label="5% mean cov")
+    ax.plot((-2, xwidth+2),(pt1xmean, pt1xmean),
+            ls='--', c='purple', linewidth=1.0, alpha=0.5, label="10% mean cov")
+    ax.plot((-2, xwidth+2),(pt2xmean, pt2xmean), 'r--', linewidth=2.0,
+            label="20% mean cov")
+    ax.plot((-2, xwidth+2),(fivexmean, fivexmean), ls='--', c='blue',
+            linewidth=2.0, label="5x mean cov")
+    ax.plot((-2, xwidth+2),(mncov, mncov),
+            ls='--', c='green', linewidth=1.0, alpha=0.3)
+    ax.set_xlim((-1, xwidth+1))
+    ax.set_ylim((ymin, ymax))
+    ax.set_yscale('symlog')
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.margins(0.05)
+    plt.xticks([])
+    #plt.yticks(fontsize=18, fontweight='bold')
+    # 200331
+    plt.legend(bbox_to_anchor=(0.0, 1.02, 1.0, 1.02), loc=3,
+              mode='expand', ncol=16)
+
+    ax.set_xlabel("amplicon", fontsize=20)
+    ax.set_ylabel('amplicon mean coverage', fontsize=20)
+    ax.set_ylabel(r'$log_{10}$(amplicon coverage)', fontsize=20, fontweight='bold')
+
+    # save plot to file
+    f.savefig(outname + "_covuniformity_plot.pdf", bbox_inches="tight")
+
+def plot_basecov_boxplot(dfnolapcov, dfcovmets, outname):
+
+    sb.set_context("poster")
+    sb.set_style("whitegrid")
+    plt.rcParams['axes.facecolor'] = '#fdf6e3'
+    plt.rcParams['savefig.facecolor'] = '#fdf6e3'
+    plt.rcParams['figure.facecolor'] = '#fdf6e3'
+
+    mncov = dfcovmets.iloc[0]['meancov']
+    pt2xmean = 0.2 * mncov
+    pt1xmean = 0.1 * mncov
+    pt05xmean = 0.05 * mncov
+    fivexmean = 5.0 * mncov
+
+
+    covmax = dfnolapcov['offsetcov'].max() + 1000 # may need tuning
+
+    if covmax >= fivexmean:
+        xmax = (2.0 * covmax )
+    else:
+        xmax = (2.0 * fivexmean)
+
+    # setting a constant value for ymin seems more reliable so far
+    xmin = 1.0 #df.offsetcov.min()
+    xwidth = len(list(set(dfnolapcov['ampname']))) + 2
+
+    fg, a = plt.subplots(figsize=(14,(xwidth / 3)))
+    sb.violinplot(y="ampname", x="offsetcov", data=dfnolapcov, ax=a,
+                  orient="h", palette=s.swiftpalette)
+    plt.axvline(x=pt05xmean, ls='--', c=s.swiftmagenta, linewidth=2.0, alpha=0.5)
+    plt.axvline(x=pt1xmean, ls='--', c=s.swiftpurple, linewidth=2.0, alpha=0.5)
+    plt.axvline(x=pt2xmean, ls='--', c='red', linewidth=2.0, alpha=0.5)
+    plt.axvline(x=mncov, ls='--', c=s.swiftgreen, linewidth=2.0, alpha=0.5)
+    plt.axvline(x=fivexmean, ls='--', c=s.swiftblue, linewidth=2.0, alpha=0.5)
+    a.set_xlim(xmin, xmax)
+
+    a.set_xscale('symlog')
+    a.set_ylabel("amplicon", fontsize=24, fontweight="bold")
+    a.set_xlabel("log(base-level coverage)", fontsize=24, fontweight="bold")
+    plt.xticks(fontsize=24, fontweight="bold")
+
+    for i,artist in enumerate(a.artists):
+        col = artist.get_facecolor()
+        artist.set_edgecolor(col)
+        artist.set_facecolor('#93a1a1')
+
+        for j in range(i*6,i*6+6):
+            line = a.lines[j]
+            line.set_color(col)
+            line.set_mfc(col)
+            line.set_mec(col)
+            #line.set_linewidth = 0.01
+
+    # save plot to file
+    fg.savefig(outname + "_amplicon_basecoverage_boxplot.pdf", bbox_inches="tight")
+
+def report_hilo_amps(dfnolapcov, outname):
+    """create text files reporting which amplicons have non-nominal coverage"""
+    g1 = dfnolapcov.groupby("ampname")
+    agg1 = g1["cov"].aggregate([np.min,np.mean,np.max])
+    agg2 = agg1.copy()
+    agg2["ampname"] = agg2.index
+    # print(agg2.columns)
+    agg2.rename(columns={"amin" : "mincov", "mean" : "meancov", "amax" : "maxcov",
+                         "ampname" : "ampname"},
+                inplace=True)
+    agg2.reset_index(drop=True, inplace=True)
+    nms = agg2["ampname"].values
+    gns = [x.split("_")[0] for x in nms]
+    d2 = agg2.copy()
+    d2['gene'] = gns
+
+    #print(d2.columns)
+    samplemean = d2['meancov'].mean()
+    sample20pctmean = 0.20 * samplemean
+    sample5xmean = 5.0 * samplemean
+    sample5pctmean = 0.05 * samplemean
+
+    lowcovamps = d2[ d2['meancov'] < sample20pctmean ]
+    hicovamps = d2[ d2['meancov'] > sample5xmean ]
+    dropoutamps = d2[ d2['meancov'] < sample5pctmean ]
+
+    #print(lowcovamps.head())
+    #print(hicovamps.head())
+    #print(dropoutamps.head())
+
+    lowcovamps.to_csv(outname + "_lowcovamps.txt", sep="\t",
+                      columns=['ampname','mincov','meancov','maxcov','gene'],
+                      index=False,
+                      float_format="%.2f")
+
+    hicovamps.to_csv(outname + "_hicovamps.txt", sep="\t",
+                      columns=['ampname','mincov','meancov','maxcov','gene'],
+                      index=False,
+                      float_format="%.2f")
+
+    dropoutamps.to_csv(outname + "_dropoutamps.txt", sep="\t",
+                      columns=['ampname','mincov','meancov','maxcov','gene'],
+                      index=False,
+                      float_format="%.2f")
+
+if __name__ == "__main__":
+    # parse command line arguments
+    parser = argparse.ArgumentParser(description='Script to plot coverage \
+            uniformity plots for sarscov2 panel (draft v3, JCI 20200817)')
+    parser.add_argument('--meancov', help='Input meancov covd filename', required=True)
+    parser.add_argument('--nolapcov', help='Input non-overlapping covd filename', required=True)
+    parser.add_argument('--covmetrics', help='Input sample coverage metrics filename', required=True)
+    parser.add_argument('--outprefix', help='Output filename prefix', required=True)
+    args = parser.parse_args()
+
+    meanin = args.meancov
+    nolapin = args.nolapcov
+    covmetsin = args.covmetrics
+    outname = args.outprefix
+
+    # create dataframes
+    (dfampmncov, dfnolapcov, dfmets) = ampcov_to_df(meanin, nolapin, covmetsin)
+
+    # create ampmeancov scatter plot
+    plot_ampcov_scatter(dfampmncov, dfmets, outname)
+    plot_basecov_boxplot(dfnolapcov, dfmets, outname)
+    report_hilo_amps(dfnolapcov, outname)
+
+    print("Coverage plotting complete.")

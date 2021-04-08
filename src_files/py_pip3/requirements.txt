@@ -1,0 +1,7 @@
+cycler
+matplotlib
+numpy
+pandas
+pandas
+seaborn
+xlsxwriter

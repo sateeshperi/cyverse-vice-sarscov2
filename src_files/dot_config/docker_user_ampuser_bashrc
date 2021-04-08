@@ -1,0 +1,13 @@
+export TERM=xterm
+export LANG=en_US.UTF-8
+export SHLVL=1
+export OLDPWD=/root
+export DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true
+
+# Initialize pyenv
+# export PYENV_ROOT=/root/.pyenv
+# export PATH="/root/.pyenv/bin:$PATH"
+export PYENV_ROOT=/home/ampuser/.pyenv
+export PATH="/home/ampuser/.pyenv/bin:$PATH"
+eval "$(pyenv init -)"
+eval "$(pyenv virtualenv-init -)"

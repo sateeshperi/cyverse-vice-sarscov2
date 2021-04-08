@@ -1,0 +1,22 @@
+channels:
+  - conda-forge
+  - bioconda
+  - epi2melabs
+dependencies:
+  - python=3
+  - mamba
+  - fastqc
+  - gatk4
+  - samtools
+  - picard
+  - minimap2
+  - bwa
+  - primerclip
+  - trimmomatic
+  - nextclade-cli
+  - pangolin
+  - bcftools
+  - bedtools
+  - seqtk
+  - vcftools
+  - htslib

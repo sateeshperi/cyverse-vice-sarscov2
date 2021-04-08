@@ -1,0 +1,2 @@
+#!/bin/bash
+java -Djava.awt.headless=true -jar /usr/local/src/trimmomatic/trimmomatic-0.36.jar "$@"

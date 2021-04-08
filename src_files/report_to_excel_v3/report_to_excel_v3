@@ -1,0 +1,104 @@
+#!/usr/bin/env python3
+
+# Read all report files into pandas, munge data, and print single excel file
+# with each report as a sheet in the file.
+# 170321 JCI
+
+import argparse
+import pandas as pd
+import xlsxwriter
+import glob as g
+
+parser = argparse.ArgumentParser(description='Read and process analysis \
+        pipeline metrics and report files and print report results as sheets \
+        in a single excel file for easier viewing (draft v1, JCI 170303)')
+
+parser.add_argument('--finmets', help='path to final_metrics_report.txt',
+                    required=True)
+args = parser.parse_args()
+finmets = args.finmets
+
+# read in final_metrics_report
+metdf = pd.read_csv(finmets, sep='\s+')
+rowcnt = len(metdf.index)
+
+# excel sheet creation
+xlwriter = pd.ExcelWriter("metrics_report.xlsx", engine='xlsxwriter')
+
+# final_metrics_report sheet
+metdf.to_excel(xlwriter, index=False, sheet_name="final_metrics_report")
+
+# low/hi-coverage amplicon report sheets
+locovfiles = g.glob("*lowcovamps.txt")
+hicovfiles = g.glob("*hicovamps.txt")
+dropoutampfiles = g.glob("*dropoutamps.txt")
+
+for i, f in enumerate(locovfiles):
+    uuid = i + 1 # in case first 26 chars of filename are not unique
+    sheetname = f.rstrip("_lowcovamps.txt")[:26] + "_LO" + str(uuid) # avoid sheet name >29 chars
+    lodf = pd.read_csv(f, sep='\s+') # header should be present
+    lodf.to_excel(xlwriter, index=False, sheet_name=sheetname)
+
+for i, f in enumerate(hicovfiles):
+    uuid = i + 1 # prevent non-unique prefixes (same as above block)
+    sheetname = f.rstrip("_hicovamps.txt")[:26] + "_HI" + str(uuid) # avoid sheet name >29 chars
+    hidf = pd.read_csv(f, sep='\s+') # header should be present
+    hidf.to_excel(xlwriter, index=False, sheet_name=sheetname)
+
+for i, f in enumerate(dropoutampfiles):
+    uuid = i + 1 # prevent non-unique prefixes (same as above block)
+    sheetname = f.rstrip("_dropoutamps.txt")[:20] + "_DROPOUT" + str(uuid) # avoid sheet name >29 chars
+    dropdf = pd.read_csv(f, sep='\s+') # header should be present
+    dropdf.to_excel(xlwriter, index=False, sheet_name=sheetname)
+
+# excel "book" formatting (all sheets)
+book = xlwriter.book
+fmetsheet = xlwriter.sheets['final_metrics_report']
+#losheet = xlwriter.sheets['low_coverage_amps']
+#hisheet = xlwriter.sheets['high_coverage_amps']
+
+intfmt = book.add_format({'num_format' : '0', 'align' : 'right'})
+pctfmt = book.add_format({'num_format' : '0.0', 'align' : 'right'})
+flt2fmt = book.add_format({'num_format' : '0.00', 'align' : 'right'})
+scifmt = book.add_format({'num_format' : '0.00E+00', 'align' : 'right'})
+
+# cell background formatting
+redbgfmt = book.add_format({'bg_color' : '#FFB3B3'})
+greenbgfmt = book.add_format({'bg_color' : '#B3FFB3'})
+
+redbgfmt.set_border(style=1)
+greenbgfmt.set_border(style=1)
+redbgfmt.set_border_color('#FF0000')
+greenbgfmt.set_border_color('#00FF00')
+
+# final_metrics_report sheet formatting
+# conditional cell background color formatting to call attention to non-nominal values (cov uniformity in this case)
+# covu_range = "G2:G{}".format(rowcnt + 1)
+# ontarget_range = "D2:D{}".format(rowcnt + 1)
+
+# fmetsheet.conditional_format(covu_range, {'type' : 'cell',
+#                                                    'criteria' : '<',
+#                                                    'value' : '90.0',
+#                                                    'format' : redbgfmt})
+# fmetsheet.conditional_format(covu_range, {'type' : 'cell',
+#                                                    'criteria' : '>=',
+#                                                    'value' : '90.0',
+#                                                    'format' : greenbgfmt})
+
+# fmetsheet.conditional_format(ontarget_range, {'type' : 'cell',
+#                                                        'criteria' : '<',
+#                                                        'value' : '90.0',
+#                                                        'format' : redbgfmt})
+# fmetsheet.conditional_format(ontarget_range, {'type' : 'cell', 
+#                                                        'criteria' : '>=',
+#                                                        'value' : '90.0',
+#                                                        'format' : greenbgfmt})
+
+fmetsheet.set_column('A:A', 30)
+fmetsheet.set_column('B:B', 16, scifmt)
+fmetsheet.set_column('C:C', 20, pctfmt)
+fmetsheet.set_column('D:D', 22, pctfmt)
+fmetsheet.set_column('E:E', 20, intfmt)
+fmetsheet.set_column('F:G', 20, pctfmt)
+
+xlwriter.save()
