@@ -574,8 +574,8 @@ do
 
 # F.C & Sandhu 210220
        echo "Running pangolin on consesnsus FASTA"
-       pangolin "${prefix}"_consensus.fa --verbose --outdir ./pangolin/global_lineage_results --outfile "${prefix}"_pangolin_consensus.csv 2> pangolin_verbose.log
-       mv ./pangolin/global_lineage_results/"${prefix}"_pangolin_consensus.csv ./pangolin/global_lineage_results/"${prefix}"_global_lineage_information.csv
+       pangolin "${prefix}"_consensus.fa --verbose --outdir pangolin/global_lineage_results --outfile "${prefix}"_pangolin_consensus.csv --panGUIlin 2> pangolin_verbose.log
+       mv ./pangolin/global_lineage_results/global_lineage_information.csv ./pangolin/global_lineage_results/"${prefix}"_global_lineage_information.csv
 
        # echo "Running pangolin on consensus FASTA"
        # pangolin_d "/data/${prefix}_consensus.fa --panGUIlin --outdir /data/pangolin --outfile ${prefix}_pangolin_consensus.csv --verbose"
@@ -654,8 +654,8 @@ mv metrics_report.xlsx "${rundir}"_metrics_report.xlsx
 # F.C & Sandhu 210225
 echo "Summarizing lineage information from Pangolin"
 echo -e "Sample\tlineage\tprobability\tpangoLEARN_version\tstatus\tnote\ttaxon" > pangoheader.txt
-for f in ./pangolin/global_lineage_results/*csv ; do sed 's/,/\t/g' $f | awk -v fname="${f%_R1*}" 'NR==2 {print fname, $2,$3,$4,$5,$6,$1}' > ${f%.csv}.tmp4; done
-cat pangoheader.txt pangolin/global_lineage_results/*tmp4 > pangolin_lineage.tmp
+for f in ./*csv ; do sed 's/,/\t/g' $f | awk -v fname="${f%_R1*}" 'NR==2 {print fname, $2,$3,$4,$5,$6,$1}' > ${f%.csv}.tmp4; done
+cat pangoheader.txt *tmp4 > pangolin_lineage.tmp
 
 echo "Summarize global lineage PANGOLIN"
 echo -e "LineageName\tMost_common_countries\tDate_Range\tNumberof_taxa\tDays_sinceLast_sampling" > panglobheader.txt

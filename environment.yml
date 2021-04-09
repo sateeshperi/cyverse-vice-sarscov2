@@ -4,12 +4,10 @@ channels:
   - defaults
   - epi2melabs
 dependencies:
-  - mamba
   - fastqc
   - gatk4
   - samtools
   - picard
-  - minimap2
   - bwa
   - primerclip
   - trimmomatic

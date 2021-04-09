@@ -29,9 +29,6 @@ COPY "./src_files/dot_config/tz_seed.txt" "/debconf_preseed.txt"
 COPY "./src_files/pangolin/requirements.txt" "./pangolin/"
 
 
-
-#COPY "./src_files/pangolin/.pyenv/versions/miniconda3-4.7.12/envs/pangolin/bin/pangolin" "./pangolin/"
-
 RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
 RUN debconf-set-selections /debconf_preseed.txt
 
@@ -94,5 +91,5 @@ RUN bash -c "cd ./pangolin/build && git clone https://github.com/cov-lineages/pa
 RUN bash -c "python3 -m pip install -r ./pangolin/requirements.txt"
 RUN bash -c "cd ./pangolin/build/pangolin && python setup.py install"
 
-
 WORKDIR /data
+
