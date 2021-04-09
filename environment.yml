@@ -1,9 +1,9 @@
 channels:
   - conda-forge
   - bioconda
+  - defaults
   - epi2melabs
 dependencies:
-  - python=3
   - mamba
   - fastqc
   - gatk4
@@ -14,9 +14,17 @@ dependencies:
   - primerclip
   - trimmomatic
   - nextclade-cli
-  - pangolin
   - bcftools
   - bedtools
   - seqtk
   - vcftools
   - htslib
+  - biopython=1.74
+  - minimap2>=2.16
+  - pip=19.3.1
+  - python=3.7
+  - snakemake-minimal=5.13
+  - gofasta
+  - pip:
+    - pandas==1.0.1
+    - git+https://github.com/cov-lineages/pangoLEARN.git

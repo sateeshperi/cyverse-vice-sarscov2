@@ -92,8 +92,8 @@ rundir="${rundirnameroot}"_"${runstart}"
 
 mkdir -p "${rundir}"
 cd "${rundir}"
-cp ../*.fastq.gz .
-cp ../"${coremaster}" .
+cp /data/*.fastq.gz .
+cp /data/"${coremaster}" .
 
 
 # start organization
@@ -168,7 +168,7 @@ mv ./*targets.bed bed
 # 200310
 cp "${coremaster}" totalmaster.tmp
 
-awk '{print $1,$2,$3,$4}' OFS="\t" totalmaster.tmp |
+awk '{print $1,$2,$3,$4}' OFS="\t" "${coremaster}" |
     sort -k1,1n -k2,2n > total_nonmerged_targets.bed
 
 bedtools merge -c 4 -o distinct -delim ";" -i total_nonmerged_targets.bed |
@@ -198,8 +198,8 @@ do
 
         ### run FASTQC ###
         echo "running fastqc"
-        fastqc -t 8 /data/"$fq1"
-        mv /data/*fastqc.zip fastqc
+        fastqc -t 8 "$fq1"
+        mv ./*fastqc.zip fastqc
 
         # TODO: clean up requirement for this empty file
         echo "0" > "${prefix}"_R2_001_fastqc_NNNNN.tmp
@@ -219,15 +219,15 @@ do
         echo "Trimming Illumina adapters"
         # NOTE: custom adapter file for Accel-amplicon Illumina adapter trimming
         trimmomatic  SE \
-            -threads 6 -trimlog /data/"${prefix}"_trimmatic_trimlog.log \
-            /data/"$fq1" /data/"${prefix}"_R1_atrimd.fq.gz \
+            -threads 6 -trimlog "${prefix}"_trimmatic_trimlog.log \
+            "$fq1" "${prefix}"_R1_atrimd.fq.gz \
             ILLUMINACLIP:/usr/local/src/trimmomatic/TruSeq3-SE.fa:2:30:10 \
             #ILLUMINACLIP:/adapters/TruSeq3-SE.fa:2:30:10 \
             MINLEN:30 2> "${prefix}"_01_atrim.log
             # ILLUMINACLIP:"${trimdir}"/adapters/TruSeq3-SE.fa:2:30:10 \
 
-        rm /data/*unpaired*.fq.gz
-        fqt1=/data/"${prefix}"_R1_atrimd.fq.gz
+        rm ./*unpaired*.fq.gz
+        fqt1="${prefix}"_R1_atrimd.fq.gz
         # fqt2="${prefix}"_R2_atrimd.fq.gz
 
         # 200509 downsample after adapter trimming and read filtering
@@ -243,22 +243,22 @@ do
 
         ### align reads ###
         echo "Aligning with bwa b37"
-        bwa mem "$ref" /data/"$fqt1" -U 17 -M -t 12 \
-            -o /data/"${prefix}"_nontrimd.sam \
+        bwa mem "$ref" "$fqt1" -U 17 -M -t 12 \
+            -o "${prefix}"_nontrimd.sam \
             2> "${prefix}"_02_bwa.log
 
-        samtools view -Sc /data/"${prefix}"_nontrimd.sam \
+        samtools view -Sc "${prefix}"_nontrimd.sam \
             > "${prefix}"_nontrimd_readct.log
 
         ### name-sort alignment file
         echo "Name-sorting SAM file for primerclip"
-        samtools sort -@ 12 -n -O SAM /data/"${prefix}"_nontrimd.sam \
+        samtools sort -@ 12 -n -O SAM "${prefix}"_nontrimd.sam \
             > "${prefix}"_nontrimd_namesrtd.sam \
             2> "${prefix}"_02_2_namesort.log
 
         ### trim primers ###
         echo "Trimming primers"
-        primerclip -s "${coremaster}" /data/"${prefix}"_nontrimd_namesrtd.sam /data/"${prefix}"_ptrimd.sam 2> "${prefix}"_03_ptrim.log
+        primerclip -s "${coremaster}" "${prefix}"_nontrimd_namesrtd.sam "${prefix}"_ptrimd.sam 2> "${prefix}"_03_ptrim.log
     else
         # PE Reads
         fq1="$f"
@@ -269,8 +269,8 @@ do
 
         ### run FASTQC ###
         echo "running fastqc"
-        fastqc -t 8 /data/"$fq1" /data/"$fq2"
-        mv /data/*fastqc.* fastqc
+        fastqc -t 8 "$fq1" "$fq2"
+        mv ./*fastqc.* fastqc
 
         echo "0" > "${prefix}"_R1_001_fastqc_NNNNN.tmp
         echo "0" > "${prefix}"_R2_001_fastqc_NNNNN.tmp
@@ -290,12 +290,12 @@ do
         # 200521 remove minlen:30 filter to allow short read (dimer) counting
         # 200805 two-step ILLUMINACLIP testing to better remove adapter and downstream dark bases from short reads
         trimmomatic PE \
-            -threads 6 -trimlog /data/"${prefix}"_trimmomatic_trimlog.log \
-            /data/"$fq1" /data/"$fq2" \
-            /data/"${prefix}"_R1_atrimd_nominlen.fq.gz \
-            /data/"${prefix}"_unpaired_R1_nominlen.fq.gz \
-            /data/"${prefix}"_R2_atrimd_nominlen.fq.gz \
-            /data/"${prefix}"_unpaired_R2_nominlen.fq.gz \
+            -threads 6 -trimlog "${prefix}"_trimmomatic_trimlog.log \
+            "$fq1" "$fq2" \
+            "${prefix}"_R1_atrimd_nominlen.fq.gz \
+            "${prefix}"_unpaired_R1_nominlen.fq.gz \
+            "${prefix}"_R2_atrimd_nominlen.fq.gz \
+            "${prefix}"_unpaired_R2_nominlen.fq.gz \
             ILLUMINACLIP:/usr/local/src/trimmomatic/TruSeq3-PE-JI.fa:2:30:10:1:true \
             ILLUMINACLIP:/usr/local/src/trimmomatic/TruSeq3-PE-JI2.fa:2:30:10 \
             2> "${prefix}"_01_atrim_nominlen.log
@@ -309,19 +309,19 @@ do
                 OFS="\t" > "${prefix}"_dimer_report.txt
 
         trimmomatic PE \
-            -threads 6 -trimlog /data/"${prefix}"_trimmomatic_trimlog_minlen.log \
-            /data/"${prefix}"_R1_atrimd_nominlen.fq.gz \
-            /data/"${prefix}"_R2_atrimd_nominlen.fq.gz \
-            /data/"${prefix}"_R1_atrimd.fq.gz \
-            /data/"${prefix}"_unpaired_R1.fq.gz \
-            /data/"${prefix}"_R2_atrimd.fq.gz \
-            /data/"${prefix}"_unpaired_R2.fq.gz \
+            -threads 6 -trimlog "${prefix}"_trimmomatic_trimlog_minlen.log \
+            "${prefix}"_R1_atrimd_nominlen.fq.gz \
+            "${prefix}"_R2_atrimd_nominlen.fq.gz \
+            "${prefix}"_R1_atrimd.fq.gz \
+            "${prefix}"_unpaired_R1.fq.gz \
+            "${prefix}"_R2_atrimd.fq.gz \
+            "${prefix}"_unpaired_R2.fq.gz \
             SLIDINGWINDOW:10:28 \
             MINLEN:30 \
             2> "${prefix}"_01_atrim.log
 
-        rm /data/*unpaired*.fq.gz
-        rm /data/*nominlen*.fq.gz
+        rm ./*unpaired*.fq.gz
+        rm ./*nominlen*.fq.gz
 
         fqt1="${prefix}"_R1_atrimd.fq.gz
         fqt2="${prefix}"_R2_atrimd.fq.gz
@@ -335,9 +335,9 @@ do
             # zcat $fqt2 | head -n $lncnt | gzip > "${prefix}"_R2_atrimd_dnsmpl.fq.gz
             # 200709 use seqtk to randomly sample fastq files for downsampling
             numrds=$(echo $maxreads | awk '{printf("%.0f", $1/2.0)}')
-            /usr/bin/seqtk sample -s seed=11 /data/$fqt1 /data/$numrds |
+            seqtk sample -s seed=11 "${fqt1}" "${numrds}" |
                 gzip > "${prefix}"_R1_atrimd_dnsmpl.fq.gz
-            /usr/bin/seqtk sample -s seed=11 /data/$fqt2 /data$numrds |
+            seqtk sample -s seed=11 "${fqt2}" "${numrds}" |
                 gzip > "${prefix}"_R2_atrimd_dnsmpl.fq.gz
             fqt1="${prefix}"_R1_atrimd_dnsmpl.fq.gz
             fqt2="${prefix}"_R2_atrimd_dnsmpl.fq.gz
@@ -345,66 +345,66 @@ do
 
         ### align reads ###
         echo "Aligning with bwa to sarscov2 reference"
-        bwa mem "$ref" /data/"$fqt1" /data/"$fqt2" -U 17 -M -t 12 \
-            -o /data/"${prefix}"_nontrimd.sam \
+        bwa mem "$ref" "$fqt1" "$fqt2" -U 17 -M -t 12 \
+            -o "${prefix}"_nontrimd.sam \
             2> "${prefix}"_02_bwa.log
 
         # 200.05
         echo "Aligning non-SARS2_aligned reads to hg37"
-        samtools view -h -f 4 -O BAM /data/"${prefix}"_nontrimd.sam \
-            -o /data/"${prefix}"_nontrimd_sars2nomap.bam \
+        samtools view -h -f 4 -O BAM "${prefix}"_nontrimd.sam \
+            -o "${prefix}"_nontrimd_sars2nomap.bam \
             2> "${prefix}"_s2nomap_sam2bam.log
 
         picard SamToFastq \
-            -I /data/"${prefix}"_nontrimd_sars2nomap.bam \
-            -F /data/"${prefix}"_sars2nomap_R1_001.fastq \
-            -F2 /data/"${prefix}"_sars2nomap_R2_001.fastq \
-            -UNPAIRED_FASTQ /data/"${prefix}"_sars2nomap_unpaired.fastq \
+            -I "${prefix}"_nontrimd_sars2nomap.bam \
+            -F "${prefix}"_sars2nomap_R1_001.fastq \
+            -F2 "${prefix}"_sars2nomap_R2_001.fastq \
+            -UNPAIRED_FASTQ "${prefix}"_sars2nomap_unpaired.fastq \
             -VALIDATION_STRINGENCY LENIENT \
             2> "${prefix}"_sam2fq.log
 
-        bwa mem "$hg37ref" /data/"${prefix}"_sars2nomap_R1_001.fastq \
-            /data/"${prefix}"_sars2nomap_R2_001.fastq \
-            -U 17 -M -t 12 -o /data/"${prefix}"_s2nomap_hg37.sam \
+        bwa mem "$hg37ref" "${prefix}"_sars2nomap_R1_001.fastq \
+            "${prefix}"_sars2nomap_R2_001.fastq \
+            -U 17 -M -t 12 -o "${prefix}"_s2nomap_hg37.sam \
             2> "${prefix}"_02_s2nomaphg37.log
 
-        samtools view -h -O BAM /data/"${prefix}"_s2nomap_hg37.sam \
-            -o /data/"${prefix}"_s2nomap_hg37.bam
+        samtools view -h -O BAM "${prefix}"_s2nomap_hg37.sam \
+            -o "${prefix}"_s2nomap_hg37.bam
 
-        samtools sort /data/"${prefix}"_s2nomap_hg37.bam \
-            -o /data/"${prefix}"_s2nomap_hg37srt.bam
+        samtools sort "${prefix}"_s2nomap_hg37.bam \
+            -o "${prefix}"_s2nomap_hg37srt.bam
 
-        samtools index /data/"${prefix}"_s2nomap_hg37srt.bam
+        samtools index "${prefix}"_s2nomap_hg37srt.bam
 
         picard CollectAlignmentSummaryMetrics \
-            -R "$hg37ref" -I /data/"${prefix}"_s2nomap_hg37srt.bam \
+            -R "$hg37ref" -I "${prefix}"_s2nomap_hg37srt.bam \
             -O "${prefix}"_s2nomap_hg37_alnmetrics.txt \
             2> "${prefix}"_alnsummmetrics.log
 
-        samtools view -Sc /data/"${prefix}"_nontrimd.sam \
-            -o /data/"${prefix}"_nontrimd_readct.log
+        samtools view -Sc "${prefix}"_nontrimd.sam \
+            -o "${prefix}"_nontrimd_readct.log
 
         # 200810
-        rm /data/*.fastq
+        rm ./*.fastq
 
         ### name-sort alignment file
         echo "Name-sorting SAM file for primerclip"
-        samtools sort -@ 12 -n -O SAM /data/"${prefix}"_nontrimd.sam \
-            -o /data/"${prefix}"_nontrimd_namesrtd.sam \
+        samtools sort -@ 12 -n -O SAM "${prefix}"_nontrimd.sam \
+            -o "${prefix}"_nontrimd_namesrtd.sam \
             2> "${prefix}"_02_2_namesort.log
 
         ### trim primers ###
         echo "Trimming primers"
         primerclip "${coremaster}" \
-            /data/"${prefix}"_nontrimd_namesrtd.sam \
-            /data/"${prefix}"_ptrimd.sam 2> "${prefix}"_03_ptrim.log
+            "${prefix}"_nontrimd_namesrtd.sam \
+            "${prefix}"_ptrimd.sam 2> "${prefix}"_03_ptrim.log
 
     fi
 
     echo "sorting and adding read groups"
     picard AddOrReplaceReadGroups \
-        -I /data/"${prefix}"_ptrimd.sam -O /data/"${prefix}"_sarscov2.bam \
-        -SO coordinate -RGID snpID -LB swift -SM /data"${prefix}" -PL illumina -PU miseq \
+        -I "${prefix}"_ptrimd.sam -O "${prefix}"_sarscov2.bam \
+        -SO coordinate -RGID snpID -LB swift -SM "${prefix}" -PL illumina -PU miseq \
         -VALIDATION_STRINGENCY LENIENT \
         2> "${prefix}"_04_addRGs.log
 
@@ -413,21 +413,21 @@ do
     #    CREATE_INDEX=true SORT_ORDER=coordinate \
     #    VALIDATION_STRINGENCY=LENIENT 2> ${prefix}_05_makenonptrimdbam.log
     picard AddOrReplaceReadGroups \
-        -I /data/"${prefix}"_nontrimd.sam -O /data/"${prefix}"_nontrimd.bam \
-        -SO coordinate -RGID snpID -LB swift -SM /data/"${prefix}" -PL illumina -PU miseq \
+        -I "${prefix}"_nontrimd.sam -O "${prefix}"_nontrimd.bam \
+        -SO coordinate -RGID snpID -LB swift -SM "${prefix}" -PL illumina -PU miseq \
         -VALIDATION_STRINGENCY LENIENT \
         2> "${prefix}"_05_makenonptrimdbam.log
 
-    samtools index /data/"${prefix}"_nontrimd.bam \
+    samtools index "${prefix}"_nontrimd.bam \
         2> "${prefix}"_05_makenonptrimdbam_index.log
 
     echo "indexing bam file"
-    samtools index /data/"${prefix}"_sarscov2.bam \
+    samtools index "${prefix}"_sarscov2.bam \
         2> "${prefix}"_06_index.log
 
     ### calculate coverage metrics ###
     echo "calculating coverage metrics"
-    bedtools coverage -b /data/"${prefix}"_sarscov2.bam -a "${bedfile}" -d > "${prefix}".covd
+    bedtools coverage -b "${prefix}"_sarscov2.bam -a "${bedfile}" -d > "${prefix}".covd
     awk '{sum+=$7}END{m=(sum/NR); b=m*0.2; c=m*0.05; print m, b, c}' "${prefix}".covd > "${prefix}"_covd.tmp 2> "${prefix}"_06_cov1.log
 
     # make an amplicon-specific coverage metrics report
@@ -435,7 +435,7 @@ do
     #       for overlapping regions!
     # UPDATE 190520 remove -d option to get amplicon coverage as sum of alns
     # covering any part of amplicon target region (per amplicon)
-    bedtools coverage -b /data/"${prefix}"_sarscov2.bam -a "${nomergebed}" |
+    bedtools coverage -b "${prefix}"_sarscov2.bam -a "${nomergebed}" |
         sort -k1,1n -k2,2n \
         > "${prefix}"_amplicon_coverage.cov 2> "${prefix}"_07_cov2.log
 
@@ -446,7 +446,7 @@ do
 
     # make an amplicon-specific coverage metrics report with olaps omitted
     # and report mean amplicon coverage using bedtool option (170228 JCI)
-    bedtools coverage -b /data/"${prefix}"_sarscov2.bam \
+    bedtools coverage -b "${prefix}"_sarscov2.bam \
         -a "${olapfreebed}" -d \
         > "${prefix}"_olapfree.covd 2> "${prefix}"_08_cov3.log
 
@@ -480,7 +480,7 @@ do
 
     ### NOTE: 170410 should we use amplicon coords for _fullintervals? ###
     # make intervals file for CollectTargetedPcrMetrics
-    samtools view -H /data/"${prefix}"_sarscov2.bam \
+    samtools view -H "${prefix}"_sarscov2.bam \
         -o "${prefix}"_header.txt
 
     cat "${prefix}"_header.txt "${ampbed}" > "${prefix}"_fullintervals
@@ -490,7 +490,7 @@ do
     # find on-target metrics using picard-tools
     echo "Running CollectTargetedPcrMetrics"
     picard CollectTargetedPcrMetrics \
-        -I /data/"${prefix}"_sarscov2.bam \
+        -I "${prefix}"_sarscov2.bam \
         -O "${prefix}"_targetPCRmetrics.txt -AI "${prefix}"_fullintervals \
         -TI "${prefix}"_noprimerintervals -R "$ref" \
         -PER_TARGET_COVERAGE "${prefix}"_perTargetCov.txt \
@@ -501,8 +501,8 @@ do
     echo "Running CollectTargetedPcrMetrics for non-trimmed sequences"
     picard CollectTargetedPcrMetrics \
         -I "${prefix}"_nontrimd.bam \
-        -O "${prefix}"_targetPCRmetrics_noptrim.txt -AI /data/"${prefix}"_fullintervals \
-        -TI "${prefix}"_noprimerintervals -R "$ref" \
+        -O "${prefix}"_targetPCRmetrics_noptrim.txt -AI "${prefix}"_fullintervals \
+        -TI "${prefix}"_noprimerintervals -R "${ref}" \
         -PER_TARGET_COVERAGE "${prefix}"_perTargetCov_noptrim.txt \
         -VALIDATION_STRINGENCY LENIENT \
         2> "${prefix}"_09_pcrmetrics_noptrim.log
@@ -527,18 +527,18 @@ do
 
         echo "Starting variant calling with GATK"
         # NOTE: gatk4
-        gatk HaplotypeCaller -R "$ref" \
-            -I /data/"${prefix}"_sarscov2.bam -L "$bedfile" -O /data/"${prefix}"_gatkHC.vcf \
-            --dont-use-soft-clipped-bases -ploidy $ploidy
+        gatk HaplotypeCaller -R "${ref}" \
+            -I "${prefix}"_sarscov2.bam -L "$bedfile" -O "${prefix}"_gatkHC.vcf \
+            --dont-use-soft-clipped-bases -ploidy "${ploidy}"
 
         # Select variants with min-depth >= $mincov and allele-fraction >= 0.9
-        gatk SelectVariants -R "$ref" -V /data/"${prefix}"_gatkHC.vcf \
+        gatk SelectVariants -R "$ref" -V "${prefix}"_gatkHC.vcf \
             -select "vc.getGenotype(0).getAD().1 / vc.getGenotype(0).getDP() >= 0.9 && vc.getGenotype(0).getDP() >= ${mincov}" \
-            -O /data/"${prefix}"_filt.vcf
+            -O "${prefix}"_filt.vcf
             #--java-options '-DGATK_STACKTRACE_ON_USER_EXCEPTION=true'
 
         echo "Calculating regions with coverage below ${mincov}X for N-masking consensus"
-        bedtools genomecov -bga -ibam /data/"${prefix}"_sarscov2.bam -g "$ref" \
+        bedtools genomecov -bga -ibam "${prefix}"_sarscov2.bam -g "${ref}" \
             > "${prefix}"_gencov.bdg \
             2> "${prefix}"_gencov.log
 
@@ -547,13 +547,13 @@ do
             2> "${prefix}"_ltmincov.log
 
         # handle vcf files with zero calls by adding a fake call to avoid bcftools consensus error
-        callcnt=$(grep '^[^#]' /data/"${prefix}"_filt.vcf | wc -l)
+        callcnt=$(grep '^[^#]' "${prefix}"_filt.vcf | wc -l)
         echo "Call count in filtered VCF: $callcnt"
         if [[ $callcnt -eq 0 ]]
         then
             > "${prefix}"_tmp.vcf
         else
-            cp /data/"${prefix}"_filt.vcf "${prefix}"_tmp.vcf
+            cp "${prefix}"_filt.vcf "${prefix}"_tmp.vcf
         # then
         #     cat "${prefix}"_filt.vcf \
         #         <(echo "NC_045512.2 25 FAKECALL T T 2000.00 . AC=1;AF=1.00;AN=1;DP=100;ExcessHet=0.0;FS=0.000;MLEAC=1;MLEAF=1.00;MQ=60.00;QD=30.00;SOR=2.000 GT:AD:DP:GQ:PL 0/0:100,100:100:99:0,1000" | tr ' ' '\t') \
@@ -561,20 +561,20 @@ do
         # else
         #     cp "${prefix}"_filt.vcf "${prefix}"_tmp.vcf
         fi
-        bgzip /data/"${prefix}"_gatkHC.vcf
+        bgzip "${prefix}"_gatkHC.vcf
         # bgzip "${prefix}"_tmp.vcf
-        bcftools index /data/"${prefix}"_gatkHC.vcf.gz
+        bcftools index "${prefix}"_gatkHC.vcf.gz
         bcftools consensus -m "${prefix}"_ltmincov.bed \
-            -f $ref /data/"${prefix}"_gatkHC.vcf.gz \
+            -f $ref "${prefix}"_gatkHC.vcf.gz \
             > "${prefix}"_consensus.fa
 
         echo "Running nextclade on consensus FASTA"
         nextclade --input-fasta "${prefix}"_consensus.fa \
-            --output-tsv /data/"${prefix}"_nextclade_results.tsv
+            --output-tsv "${prefix}"_nextclade_results.tsv
 
 # F.C & Sandhu 210220
        echo "Running pangolin on consesnsus FASTA"
-       pangolin "${prefix}"_consensus.fa --verbose --outdir pangolin/global_lineage_results --outfile "${prefix}"_pangolin_consensus.csv 2> pangolin_verbose.log
+       pangolin "${prefix}"_consensus.fa --verbose --outdir ./pangolin/global_lineage_results --outfile "${prefix}"_pangolin_consensus.csv 2> pangolin_verbose.log
        mv ./pangolin/global_lineage_results/"${prefix}"_pangolin_consensus.csv ./pangolin/global_lineage_results/"${prefix}"_global_lineage_information.csv
 
        # echo "Running pangolin on consensus FASTA"
@@ -664,13 +664,13 @@ cat panglobheader.txt pangolin/global_lineage_results/*tmp5 > pangolin_globalin.
 paste pangolin_lineage.tmp pangolin_globalin.tmp > pangolin_lineage_report.txt
 
 echo "Summarizing Nextclade results"
-for g in /data/*tsv
+for g in ./*tsv
  do
      head -n1 $g > nextclad_header.txt
      awk -v fname="${g%_R1*}" 'NR==2 {print fname, $0}' $g > ${g%.tsv}.tmp5
 done
 
-cat ./nextclad_header.txt /data/*tmp5 > nextclade_Clade_report.txt
+cat ./nextclad_header.txt ./*tmp5 > nextclade_Clade_report.txt
 
 # Clean up tmp files and organize output
 
@@ -687,13 +687,13 @@ mv ./*.cov metrics/
 mv ./*metrics.txt metrics/
 mv ./*perTargetCov.txt metrics/
 mv ./*.fastq.gz fastq/
-mv /data/*.fq.gz fastq/
-mv /data/*nontrim* tmp/
-mv /data/*s2nomap* tmp/
+mv ./*.fq.gz fastq/
+mv ./*nontrim* tmp/
+mv ./*s2nomap* tmp/
 mv ./*.txt tmp/
 mv ./tmp/"${coremaster}" ./
 mv ./*.p* plots/
-mv /data/*.ba* bam/
+mv ./*.ba* bam/
 mv ./tmp/pangolin_lineage_report.txt ./
 mv ./tmp/nextclade_Clade_report.txt ./
 mv ./*_report.txt metrics/
