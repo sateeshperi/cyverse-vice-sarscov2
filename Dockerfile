@@ -91,5 +91,5 @@ RUN bash -c "cd ./pangolin/build && git clone https://github.com/cov-lineages/pa
 RUN bash -c "python3 -m pip install -r ./pangolin/requirements.txt"
 RUN bash -c "cd ./pangolin/build/pangolin && python setup.py install"
 
-WORKDIR /data
-
+USER jovyan
+WORKDIR /home/jovyan/work
