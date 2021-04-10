@@ -92,4 +92,4 @@ RUN bash -c "python3 -m pip install -r ./pangolin/requirements.txt"
 RUN bash -c "cd ./pangolin/build/pangolin && python setup.py install"
 
 USER jovyan
-WORKDIR /home/jovyan/work
+WORKDIR /data

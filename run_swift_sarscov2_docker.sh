@@ -81,9 +81,9 @@ shopt -s expand_aliases
 # args specified on command line when calling script:
 coremaster="$1"
 maxreads="${2:-20000000}"
-ref="/data/rgenomes/covid19.fasta"
-#hybridref="/rgenomes/sarscov2_homosapiens_assembly19broad_hybrid.fasta"
-hg37ref="/data/rgenomes/Homo_sapiens_assembly19broad.fasta"
+ref="/data/swift_sarscov2_ref_genomes/rgenomes/covid19.fasta"
+#hybridref="/data/swift_sarscov2_ref_genomes/sarscov2_homosapiens_assembly19broad_hybrid.fasta"
+hg37ref="/data/swift_sarscov2_ref_genomes/rgenomes/Homo_sapiens_assembly19broad.fasta"
 
 # start organization
 rundirnameroot="$(echo "${coremaster}" | tr '_' '\t' | awk '{print $1}')"
@@ -714,4 +714,3 @@ fi
 
 echo "analysis workflow finished."
 echo "Please check out the new plots (.pdf files) and the excel report file (metrics_report.xlsx)"
-
