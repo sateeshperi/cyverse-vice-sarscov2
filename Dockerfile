@@ -1,6 +1,6 @@
 FROM cyversevice/jupyterlab-datascience:latest
 
-user root 
+USER root 
 
 WORKDIR /usr/local/src
 ENV PATH=/opt/conda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
@@ -29,6 +29,8 @@ COPY "./src_files/pangolin/requirements.txt" "./pangolin/"
 COPY "./src_files/entry.sh" "/bin"
 COPY "./run_swift_sarscov2_conda.sh" "/data/"
 COPY "./sarscov2_v2_masterfile.txt" "/data/"
+COPY "./swift_sarscov2_cyverse.ipynb" "/data/"
+COPY "./src_files/.bashrc" "${HOME}/.bashrc"
 
 RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
 RUN debconf-set-selections /debconf_preseed.txt
@@ -99,8 +101,6 @@ RUN jupyter labextension install ijab
 
 RUN mkdir -p /home/jovyan/.irods
 
-USER root
-COPY "./src_files/.bashrc" "${HOME}/.bashrc"
 
 USER jovyan
 EXPOSE 8888
