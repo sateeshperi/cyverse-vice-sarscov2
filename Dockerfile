@@ -1,4 +1,4 @@
-FROM cyversevice/jupyterlab-datascience
+FROM cyversevice/jupyterlab-datascience:latest
 
 user root 
 
@@ -13,7 +13,6 @@ RUN conda update -n base -c defaults conda
 RUN conda env update -n base -f environment.yml && \
     conda clean --all
 
-
 # Copy source files
 RUN export PATH=${PATH}
 RUN export TERM=${TERM}
@@ -27,7 +26,9 @@ COPY "./src_files/py_pip3/*" "./py_pip3/"
 COPY "./src_files/dot_config/*" "./dot_config/"
 COPY "./src_files/dot_config/tz_seed.txt" "/debconf_preseed.txt"
 COPY "./src_files/pangolin/requirements.txt" "./pangolin/"
-
+COPY "./src_files/entry.sh" "/bin"
+COPY "./run_swift_sarscov2_conda.sh" "/data/"
+COPY "./sarscov2_v2_masterfile.txt" "/data/"
 
 RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
 RUN debconf-set-selections /debconf_preseed.txt
@@ -77,7 +78,6 @@ RUN apt-get update && apt-get install -y \
      perl \
      libssl-dev
 
-
 # Install core python3 dependencies through pip
 RUN python3 -m pip install -r ./py_pip3/requirements.txt
 
@@ -87,9 +87,24 @@ RUN ln -s /usr/local/src/report_to_excel_v3/report_to_excel_v3 /usr/local/bin/
 RUN bash -c "mkdir ./pangolin/build"
 RUN bash -c "cd ./pangolin/build && git clone https://github.com/cov-lineages/pangolin.git"
 
-
 RUN bash -c "python3 -m pip install -r ./pangolin/requirements.txt"
 RUN bash -c "cd ./pangolin/build/pangolin && python setup.py install"
 
+# install iRODS plugin
+RUN conda install -c conda-forge nodejs -y
+RUN pip install jupyterlab_irods==3.0.*
+
+RUN jupyter serverextension enable --py jupyterlab_irods
+RUN jupyter labextension install ijab
+
+RUN mkdir -p /home/jovyan/.irods
+
+USER root
+COPY "./src_files/.bashrc" "${HOME}/.bashrc"
+
 USER jovyan
+EXPOSE 8888
+
 WORKDIR /data
+
+ENTRYPOINT ["bash", "/bin/entry.sh"]

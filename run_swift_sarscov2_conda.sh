@@ -81,9 +81,9 @@ shopt -s expand_aliases
 # args specified on command line when calling script:
 coremaster="$1"
 maxreads="${2:-20000000}"
-ref="/data/swift_sarscov2_ref_genomes/rgenomes/covid19.fasta"
+ref="/data/swift_sarscov2_ref_genomes/covid19.fasta"
 #hybridref="/data/swift_sarscov2_ref_genomes/sarscov2_homosapiens_assembly19broad_hybrid.fasta"
-hg37ref="/data/swift_sarscov2_ref_genomes/rgenomes/Homo_sapiens_assembly19broad.fasta"
+hg37ref="/data/swift_sarscov2_ref_genomes/Homo_sapiens_assembly19broad.fasta"
 
 # start organization
 rundirnameroot="$(echo "${coremaster}" | tr '_' '\t' | awk '{print $1}')"
@@ -654,8 +654,8 @@ mv metrics_report.xlsx "${rundir}"_metrics_report.xlsx
 # F.C & Sandhu 210225
 echo "Summarizing lineage information from Pangolin"
 echo -e "Sample\tlineage\tprobability\tpangoLEARN_version\tstatus\tnote\ttaxon" > pangoheader.txt
-for f in ./*csv ; do sed 's/,/\t/g' $f | awk -v fname="${f%_R1*}" 'NR==2 {print fname, $2,$3,$4,$5,$6,$1}' > ${f%.csv}.tmp4; done
-cat pangoheader.txt *tmp4 > pangolin_lineage.tmp
+for f in ./pangolin/global_lineage_results/*csv ; do sed 's/,/\t/g' $f | awk -v fname="${f%_R1*}" 'NR==2 {print fname, $2,$3,$4,$5,$6,$1}' > ${f%.csv}.tmp4; done
+cat pangoheader.txt pangolin/global_lineage_results/*tmp4 > pangolin_lineage.tmp
 
 echo "Summarize global lineage PANGOLIN"
 echo -e "LineageName\tMost_common_countries\tDate_Range\tNumberof_taxa\tDays_sinceLast_sampling" > panglobheader.txt
