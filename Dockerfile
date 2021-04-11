@@ -105,6 +105,6 @@ COPY "./src_files/.bashrc" "${HOME}/.bashrc"
 USER jovyan
 EXPOSE 8888
 
-WORKDIR /data
+WORKDIR /data/
 
 ENTRYPOINT ["bash", "/bin/entry.sh"]
