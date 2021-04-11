@@ -27,9 +27,6 @@ COPY "./src_files/dot_config/*" "./dot_config/"
 COPY "./src_files/dot_config/tz_seed.txt" "/debconf_preseed.txt"
 COPY "./src_files/pangolin/requirements.txt" "./pangolin/"
 COPY "./src_files/entry.sh" "/bin"
-COPY "./run_swift_sarscov2_conda.sh" "/data/"
-COPY "./sarscov2_v2_masterfile.txt" "/data/"
-COPY "./swift_sarscov2_cyverse.ipynb" "/data/"
 COPY "./src_files/.bashrc" "${HOME}/.bashrc"
 
 RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
@@ -101,10 +98,12 @@ RUN jupyter labextension install ijab
 
 RUN mkdir -p /home/jovyan/.irods
 
-
 USER jovyan
-EXPOSE 8888
-
 WORKDIR /data/
+COPY "./run_swift_sarscov2_conda.sh" "/data/"
+COPY "./sarscov2_v2_masterfile.txt" "/data/"
+COPY "./swift_sarscov2_cyverse.ipynb" "/data/"
+
+EXPOSE 8888
 
 ENTRYPOINT ["bash", "/bin/entry.sh"]
