@@ -1,10 +1,4 @@
 # cyverse-vice-sarscov2
 
-launch app
+[![Project Supported by CyVerse](https://img.shields.io/badge/Supported%20by-CyVerse-blue.svg)](https://learning.cyverse.org/projects/vice/en/latest/) 
 
-#download ref genomes
-iget -K -r /iplant/home/shared/iplantcollaborative/example_data/swift_sarscov2_ref_genomes
-
-# git clone repo
-
-git clone https://github.com/sateeshperi/cyverse-vice-sarscov2.git
