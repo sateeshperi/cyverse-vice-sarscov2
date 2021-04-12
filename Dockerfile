@@ -98,12 +98,9 @@ RUN jupyter labextension install ijab
 
 RUN mkdir -p /home/jovyan/.irods
 
-USER jovyan
 WORKDIR /data/
-COPY "./run_swift_sarscov2_conda.sh" "/data/"
-COPY "./sarscov2_v2_masterfile.txt" "/data/"
-COPY "./swift_sarscov2_cyverse.ipynb" "/data/"
 
+USER jovyan
 EXPOSE 8888
 
 ENTRYPOINT ["bash", "/bin/entry.sh"]
