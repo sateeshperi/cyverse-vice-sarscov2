@@ -528,11 +528,11 @@ do
         echo "Starting variant calling with GATK"
         # NOTE: gatk4
         gatk HaplotypeCaller -R "${ref}" \
-            -I "${prefix}"_sarscov2.bam -L "$bedfile" -O "${prefix}"_gatkHC.vcf \
+            -I "${prefix}"_sarscov2.bam -L "${bedfile}" -O "${prefix}"_gatkHC.vcf \
             --dont-use-soft-clipped-bases -ploidy "${ploidy}"
 
         # Select variants with min-depth >= $mincov and allele-fraction >= 0.9
-        gatk SelectVariants -R "$ref" -V "${prefix}"_gatkHC.vcf \
+        gatk SelectVariants -R "${ref}" -V "${prefix}"_gatkHC.vcf \
             -select "vc.getGenotype(0).getAD().1 / vc.getGenotype(0).getDP() >= 0.9 && vc.getGenotype(0).getDP() >= ${mincov}" \
             -O "${prefix}"_filt.vcf
             #--java-options '-DGATK_STACKTRACE_ON_USER_EXCEPTION=true'
@@ -654,23 +654,23 @@ mv metrics_report.xlsx "${rundir}"_metrics_report.xlsx
 # F.C & Sandhu 210225
 echo "Summarizing lineage information from Pangolin"
 echo -e "Sample\tlineage\tprobability\tpangoLEARN_version\tstatus\tnote\ttaxon" > pangoheader.txt
-for f in ./pangolin/global_lineage_results/*csv ; do sed 's/,/\t/g' $f | awk -v fname="${f%_R1*}" 'NR==2 {print fname, $2,$3,$4,$5,$6,$1}' > ${f%.csv}.tmp4; done
-cat pangoheader.txt pangolin/global_lineage_results/*tmp4 > pangolin_lineage.tmp
+for f in pangolin/global_lineage_results/*_consensus.csv ; do sed 's/,/\t/g' $f | awk -v fname="${f%_R1*}" 'NR==2 {print fname, $2,$3,$4,$5,$6,$1}' > ${f%.csv}.tmp4; done
+cat pangoheader.txt pangolin/global_lineage_results/*.tmp4 > pangolin_lineage.tmp
 
 echo "Summarize global lineage PANGOLIN"
 echo -e "LineageName\tMost_common_countries\tDate_Range\tNumberof_taxa\tDays_sinceLast_sampling" > panglobheader.txt
-for f in ./pangolin/global_lineage_results/*csv ; do sed 's/,/\t/g' $f | awk 'NR==2' > ${f%.csv}.tmp5; done
-cat panglobheader.txt pangolin/global_lineage_results/*tmp5 > pangolin_globalin.tmp
+for f in ./pangolin/global_lineage_results/*_information.csv ; do sed 's/,/\t/g' $f | awk 'NR==2' > ${f%.csv}.tmp5; done
+cat panglobheader.txt pangolin/global_lineage_results/*.tmp5 > pangolin_globalin.tmp
 paste pangolin_lineage.tmp pangolin_globalin.tmp > pangolin_lineage_report.txt
 
 echo "Summarizing Nextclade results"
-for g in ./*tsv
+for g in *.tsv
  do
      head -n1 $g > nextclad_header.txt
      awk -v fname="${g%_R1*}" 'NR==2 {print fname, $0}' $g > ${g%.tsv}.tmp5
 done
 
-cat ./nextclad_header.txt ./*tmp5 > nextclade_Clade_report.txt
+cat nextclad_header.txt ./*.tmp5 > nextclade_Clade_report.txt
 
 # Clean up tmp files and organize output
 
@@ -690,27 +690,26 @@ mv ./*.fastq.gz fastq/
 mv ./*.fq.gz fastq/
 mv ./*nontrim* tmp/
 mv ./*s2nomap* tmp/
+mv ./*_report.txt metrics/
 mv ./*.txt tmp/
-mv ./tmp/"${coremaster}" ./
 mv ./*.p* plots/
 mv ./*.ba* bam/
-mv ./tmp/pangolin_lineage_report.txt ./
-mv ./tmp/nextclade_Clade_report.txt ./
-mv ./*_report.txt metrics/
 
 if [ ! "$metrics" = "1" ]
 then
     mkdir -p vcf consensus nextclade
     mv ./*.vcf vcf
     mv ./*.idx vcf
-    mv *.bdg metrics
-    mv *.tsv nextclade
-    mv *.csv pangolin
-    mv *consensus.fa consensus
-    mv *.vcf.gz* vcf
+    mv ./*.bdg metrics
+    mv ./*.tsv nextclade
+#    mv ./*.csv pangolin
+    mv ./*consensus.fa consensus
+    mv ./*.vcf.gz* vcf
     mv ./metrics/nextclade_Clade_report.txt ./
     mv ./metrics/pangolin_lineage_report.txt ./
 fi
+
+conda list --export > "${rundir}"_package_list.txt
 
 echo "analysis workflow finished."
 echo "Please check out the new plots (.pdf files) and the excel report file (metrics_report.xlsx)"
